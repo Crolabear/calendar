@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rule-Based Calendar</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Rule-Based Calendar</h1>
+
+        <div class="profile-section">
+            <h2>Profile Management</h2>
+            <div class="profile-controls">
+                <div class="profile-selector">
+                    <label for="profileSelect">Current Profile:</label>
+                    <select id="profileSelect">
+                        <option value="default">Default Profile</option>
+                    </select>
+                </div>
+                <div class="profile-actions">
+                    <div class="profile-creation">
+                        <input type="text" id="newProfileName" placeholder="New profile name" maxlength="30">
+                        <button id="createProfile">Create Profile</button>
+                    </div>
+                    <div class="profile-management">
+                        <button id="deleteProfile">Delete Profile</button>
+                        <button id="exportProfile">Export Profile</button>
+                        <input type="file" id="importProfile" accept=".json" style="display: none;">
+                        <button id="importProfileBtn">Import Profile</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="rules-section">
+            <h2 id="rulesTitle">Selection Rules</h2>
+
+            <div class="rules-info">
+                <h3>Active Rules:</h3>
+                <div id="rulesDisplay">
+                    <!-- Rules will be dynamically updated based on profile type -->
+                </div>
+            </div>
+
+            <div class="selection-options">
+                <h3>Selection Options:</h3>
+                <div class="selection-controls">
+                    <label>
+                        <input type="checkbox" id="enableMonthlySelection">
+                        Enable Monthly Selection (in addition to quarterly)
+                    </label>
+                    <div class="selection-mode" id="selectionModeControls" style="display: none;">
+                        <div class="mode-buttons">
+                            <button id="quarterlyModeBtn" class="mode-btn active">Quarterly Selection</button>
+                            <button id="monthlyModeBtn" class="mode-btn">Monthly Selection</button>
+                        </div>
+                        <div class="mode-legend">
+                            <span class="legend-item"><span class="color-box quarterly"></span>Quarterly (Priority)</span>
+                            <span class="legend-item"><span class="color-box monthly"></span>Monthly (Additional)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="blocking-section">
+                <h3>Day Blocking Options:</h3>
+                <div class="blocking-controls">
+                    <label>
+                        <input type="checkbox" id="avoidHolidays" checked>
+                        Avoid US Federal Holidays
+                    </label>
+                    <div class="manual-blocking">
+                        <label for="blockDate">Block specific date:</label>
+                        <input type="date" id="blockDate">
+                        <button id="addBlockedDate">Block Date</button>
+                    </div>
+                </div>
+                <div class="blocked-dates">
+                    <h4>Blocked Dates:</h4>
+                    <div id="blockedDatesList"></div>
+                </div>
+            </div>
+
+            <div class="history-section">
+                <h3>Selection History:</h3>
+                <div class="history-controls">
+                    <button id="clearHistory">Clear History</button>
+                    <button id="clearBlocked">Clear Blocked Dates</button>
+                    <button id="generateValidDays">Generate Valid Days</button>
+                </div>
+                <div id="selectionHistory"></div>
+            </div>
+        </div>
+
+        <div class="calendar-section">
+            <div class="calendar-header">
+                <button id="prevPeriod">&lt;</button>
+                <h2 id="currentPeriod"></h2>
+                <button id="nextPeriod">&gt;</button>
+            </div>
+            <div id="calendar" class="six-month-calendar"></div>
+        </div>
+
+        <div class="selected-days">
+            <div class="quarterly-selections">
+                <h3>Quarterly Selections:</h3>
+                <div class="selected-days-controls">
+                    <button id="clearSelected">Clear Quarterly</button>
+                    <span class="help-text">Blue selections - Primary quarterly picks</span>
+                </div>
+                <div id="selectedDays"></div>
+            </div>
+            
+            <div class="monthly-selections" id="monthlySelectionsSection" style="display: none;">
+                <h3>Monthly Selections:</h3>
+                <div class="selected-days-controls">
+                    <button id="clearMonthlySelected">Clear Monthly</button>
+                    <span class="help-text">Orange selections - Additional monthly picks</span>
+                </div>
+                <div id="monthlySelectedDays"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
