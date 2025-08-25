@@ -36,6 +36,19 @@
             </div>
         </div>
 
+        <div class="data-export-section">
+            <h2>Data Export/Import</h2>
+            <div class="data-controls">
+                <div class="data-actions">
+                    <button id="exportAllData">Export All Dates</button>
+                    <input type="file" id="importAllData" accept=".json" style="display: none;">
+                    <button id="importAllDataBtn">Import All Dates</button>
+                    <button id="clearAllData">Clear All Data</button>
+                </div>
+                <p class="data-info">Export/import all your selected dates and settings as a backup file.</p>
+            </div>
+        </div>
+
         <div class="rules-section">
             <h2 id="rulesTitle">Selection Rules</h2>
 
@@ -49,20 +62,63 @@
             <div class="selection-options">
                 <h3>Selection Options:</h3>
                 <div class="selection-controls">
-                    <label>
+                    <label title="Enable monthly selection mode to make additional date selections within quarters that already have quarterly selections. Monthly selections depend on quarterly selections and will be removed if the quarterly selection is removed.">
                         <input type="checkbox" id="enableMonthlySelection">
                         Enable Monthly Selection (in addition to quarterly)
                     </label>
                     <div class="selection-mode" id="selectionModeControls" style="display: none;">
                         <div class="mode-buttons">
-                            <button id="quarterlyModeBtn" class="mode-btn active">Quarterly Selection</button>
-                            <button id="monthlyModeBtn" class="mode-btn">Monthly Selection</button>
+                            <button id="quarterlyModeBtn" class="mode-btn active" title="Quarterly Selection Mode: Make one primary selection per quarter. These selections enable monthly selections for their respective quarters.">Quarterly Selection</button>
+                            <button id="monthlyModeBtn" class="mode-btn" title="Monthly Selection Mode: Make additional selections within quarters that have quarterly selections. Limited to one selection per month and must follow consecutive pattern rules.">Monthly Selection</button>
                         </div>
                         <div class="mode-legend">
                             <span class="legend-item"><span class="color-box quarterly"></span>Quarterly (Priority)</span>
                             <span class="legend-item"><span class="color-box monthly"></span>Monthly (Additional)</span>
                         </div>
+                        <div class="monthly-help-section">
+                            <details>
+                                <summary>📖 Monthly Selection Help</summary>
+                                <div class="help-content">
+                                    <h4>How Monthly Selection Works:</h4>
+                                    <ul>
+                                        <li><strong>Prerequisite:</strong> A quarterly selection must exist in a quarter before monthly selections can be made in that quarter</li>
+                                        <li><strong>Limit:</strong> Only one selection per month (quarterly selection counts as the monthly selection for its month)</li>
+                                        <li><strong>Dependency:</strong> Monthly selections are automatically removed if their quarterly selection is removed</li>
+                                        <li><strong>Rules:</strong> Monthly selections follow the same consecutive pattern rules as quarterly selections</li>
+                                    </ul>
+                                    <h4>Visual Indicators:</h4>
+                                    <ul>
+                                        <li><span style="color: #007bff;">🔵 Blue days</span> - Quarterly selections (enable monthly for the quarter)</li>
+                                        <li><span style="color: #fd7e14;">🟠 Orange days</span> - Monthly selections (additional to quarterly)</li>
+                                        <li><span style="color: #28a745;">🟢 Green days</span> - Available for selection</li>
+                                        <li><span style="color: #dc3545;">🔴 Red days</span> - Invalid or blocked</li>
+                                    </ul>
+                                    <h4>Error Messages:</h4>
+                                    <ul>
+                                        <li><strong>"Quarterly selection required"</strong> - Make a quarterly selection in the quarter first</li>
+                                        <li><strong>"Month already has selection"</strong> - Only one selection per month allowed</li>
+                                        <li><strong>"Consecutive pattern violation"</strong> - Would create 3 consecutive selections of same type</li>
+                                    </ul>
+                                </div>
+                            </details>
+                        </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="display-options">
+                <h3>Display Options:</h3>
+                <div class="display-controls">
+                    <label for="monthDisplayCount">Months to display:</label>
+                    <select id="monthDisplayCount">
+                        <option value="3">3 months</option>
+                        <option value="4">4 months</option>
+                        <option value="6">6 months</option>
+                        <option value="8">8 months</option>
+                        <option value="9" selected>9 months</option>
+                        <option value="10">10 months</option>
+                        <option value="12">12 months</option>
+                    </select>
                 </div>
             </div>
 
@@ -91,6 +147,7 @@
                     <button id="clearHistory">Clear History</button>
                     <button id="clearBlocked">Clear Blocked Dates</button>
                     <button id="generateValidDays">Generate Valid Days</button>
+                    <button id="runIntegrationTests" style="background-color: #17a2b8; color: white;">🧪 Run Integration Tests</button>
                 </div>
                 <div id="selectionHistory"></div>
             </div>
@@ -102,7 +159,7 @@
                 <h2 id="currentPeriod"></h2>
                 <button id="nextPeriod">&gt;</button>
             </div>
-            <div id="calendar" class="six-month-calendar"></div>
+            <div id="calendar" class="calendar-grid months-9"></div>
         </div>
 
         <div class="selected-days">
@@ -118,7 +175,7 @@
             <div class="monthly-selections" id="monthlySelectionsSection" style="display: none;">
                 <h3>Monthly Selections:</h3>
                 <div class="selected-days-controls">
-                    <button id="clearMonthlySelected">Clear Monthly</button>
+                    <button id="clearMonthlySelected" title="Clear all monthly selections. This will not affect quarterly selections, which will remain and continue to enable monthly selections for their quarters.">Clear Monthly</button>
                     <span class="help-text">Orange selections - Additional monthly picks</span>
                 </div>
                 <div id="monthlySelectedDays"></div>
@@ -126,7 +183,22 @@
         </div>
     </div>
 
+    <!-- Floating Monthly Selection Toggle -->
+    <div id="floatingMonthlyToggle" class="floating-monthly-toggle" style="display: none;">
+        <div class="floating-toggle-content">
+            <label class="floating-toggle-label">
+                <input type="checkbox" id="floatingEnableMonthlySelection">
+                <span class="toggle-text">Monthly Selection</span>
+                <span class="toggle-status" id="floatingToggleStatus">OFF</span>
+            </label>
+            <button id="floatingToggleCollapse" class="floating-toggle-collapse" title="Hide floating toggle">−</button>
+        </div>
+    </div>
+
     <script src="script.js"></script>
+    <script src="test-monthly-workflow.js"></script>
+    <script src="test-monthly-default.js"></script>
+    <script src="test-selection-storage.js"></script>
 </body>
 
 </html>
