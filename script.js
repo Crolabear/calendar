@@ -2040,6 +2040,14 @@ class QuarterlyRuleCalendar {
                 this.updateProfileSelector();
                 this.profileSelect.value = this.currentProfile;
 
+                // Update other UI elements
+                if (this.avoidHolidaysCheckbox) {
+                    this.avoidHolidaysCheckbox.checked = this.avoidHolidays;
+                }
+                if (this.monthDisplayCountSelect) {
+                    this.monthDisplayCountSelect.value = this.monthDisplayCount;
+                }
+
                 // Update displays
                 this.updateSelectedDaysDisplay();
                 this.updateMonthlySelectedDaysDisplay();
@@ -2047,6 +2055,9 @@ class QuarterlyRuleCalendar {
                 this.updateBlockedDatesDisplay();
                 this.calculateValidDays();
                 this.renderCalendar();
+
+                // Save the imported data to current profile
+                this.saveCurrentProfile();
 
                 console.log('All calendar data imported successfully');
 
@@ -2739,6 +2750,13 @@ class QuarterlyRuleCalendar {
                             <li>Only allowed in quarters with existing quarterly selections</li>
                             <li>Once per month maximum (quarterly selection counts as monthly)</li>
                             <li>Quarterly selections are automatically treated as monthly selections</li>
+                            <li>No more than 2 consecutive monthly selections for (within current + previous 2 quarters):
+                                <ul>
+                                    <li>Day period (1st 10 days, 2nd 10 days, or 3rd 10 days)</li>
+                                    <li>Day of week (Monday through Friday)</li>
+                                    <li>Month of quarter (1st, 2nd, or 3rd month)</li>
+                                </ul>
+                            </li>
                         </ul>
                     </li>
                     <li><strong>General Rules:</strong>
