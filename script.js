@@ -387,6 +387,17 @@ class QuarterlyRuleCalendar {
         return quarterDiff >= 0 && quarterDiff <= 2;
     }
 
+    // Helper method to check if a selection is within 3-month windows for monthly consecutive validation
+    isWithinMonthlyTimeWindow(selectionDate, currentDate) {
+        const selectionMonth = selectionDate.getFullYear() * 12 + selectionDate.getMonth();
+        const currentMonth = currentDate.getFullYear() * 12 + currentDate.getMonth();
+        const monthDiff = Math.abs(currentMonth - selectionMonth);
+        
+        // Check if within any of the 3-month windows:
+        // N-2,N-1,N or N-1,N,N+1 or N,N+1,N+2
+        return monthDiff <= 2;
+    }
+
     hasConsecutiveViolation(newSelection, attribute) {
         // Filter history to only include selections within allowed time window (current + previous 2 quarters)
         const relevantHistory = this.selectionHistory.filter(selection =>
@@ -518,11 +529,6 @@ class QuarterlyRuleCalendar {
             return false;
         }
 
-        // Rule 5: No more than 2 consecutive for monthOfQuarter (applies to monthly selections too)
-        if (this.hasConsecutiveViolationMonthlyWithDependency(metadata, 'monthOfQuarter')) {
-            return false;
-        }
-
         return true;
     }
 
@@ -572,15 +578,6 @@ class QuarterlyRuleCalendar {
             };
         }
 
-        // Rule 5: No more than 2 consecutive for monthOfQuarter
-        if (this.hasConsecutiveViolationMonthlyWithDependency(metadata, 'monthOfQuarter')) {
-            const monthNames = { 1: 'first', 2: 'second', 3: 'third' };
-            return {
-                isValid: false,
-                errorMessage: `Cannot select 3 consecutive selections in the ${monthNames[metadata.monthOfQuarter]} month of quarters. This would violate the consecutive month pattern rule.`
-            };
-        }
-
         return { isValid: true };
     }
 
@@ -614,49 +611,59 @@ class QuarterlyRuleCalendar {
             allSelectionMetadata.push(metadata);
         });
 
-        // Filter to only include selections within allowed time window (current + previous 2 quarters)
-        const relevantSelections = allSelectionMetadata.filter(selection =>
-            this.isWithinAllowedTimeWindow(selection, newSelection)
-        );
-
+        // Add the new selection to check
+        const allSelectionsWithNew = [...allSelectionMetadata, newSelection];
+        
         // Sort by date
-        const sortedSelections = relevantSelections.sort((a, b) => a.date - b.date);
+        const sortedSelections = allSelectionsWithNew.sort((a, b) => a.date - b.date);
 
-        // Find consecutive selections with same attribute value
-        let consecutiveCount = 0;
-        let lastValue = null;
+        // Check for consecutive violations in 3-month sliding windows
+        return this.hasConsecutiveViolationInSlidingWindows(sortedSelections, newSelection, attribute);
+    }
 
-        for (const selection of sortedSelections) {
-            const currentValue = selection[attribute];
-
-            if (currentValue === lastValue) {
-                consecutiveCount++;
-                if (consecutiveCount >= 2 && currentValue === newSelection[attribute]) {
-                    return true; // Would create 3 consecutive
-                }
-            } else {
-                consecutiveCount = 1;
-                lastValue = currentValue;
-            }
-        }
-
-        // Check if adding new selection would create 3 consecutive at the end
-        if (sortedSelections.length > 0) {
-            const lastSelection = sortedSelections[sortedSelections.length - 1];
-            if (lastSelection[attribute] === newSelection[attribute]) {
-                // Count backwards to see how many consecutive we already have
-                let count = 1;
-                for (let i = sortedSelections.length - 2; i >= 0; i--) {
-                    if (sortedSelections[i][attribute] === newSelection[attribute]) {
-                        count++;
-                    } else {
-                        break;
+    // Check for consecutive violations using sliding 3-month windows
+    hasConsecutiveViolationInSlidingWindows(sortedSelections, newSelection, attribute) {
+        // For each selection, check if it creates 3 consecutive with the same attribute value
+        // within any 3-month window
+        
+        for (let i = 0; i < sortedSelections.length; i++) {
+            const currentSelection = sortedSelections[i];
+            
+            // Skip if this isn't the new selection we're validating
+            if (currentSelection !== newSelection) continue;
+            
+            // Check 3-month windows: look back 2 months and forward 2 months
+            const currentMonth = currentSelection.year * 12 + currentSelection.month;
+            
+            // Collect all selections within 2 months before and after current selection
+            const windowSelections = sortedSelections.filter(selection => {
+                const selectionMonth = selection.year * 12 + selection.month;
+                const monthDiff = Math.abs(selectionMonth - currentMonth);
+                return monthDiff <= 2;
+            });
+            
+            // Sort by date within the window
+            windowSelections.sort((a, b) => a.date - b.date);
+            
+            // Check for 3 consecutive same attribute values
+            let consecutiveCount = 1;
+            let lastValue = null;
+            
+            for (const selection of windowSelections) {
+                const currentValue = selection[attribute];
+                
+                if (currentValue === lastValue) {
+                    consecutiveCount++;
+                    if (consecutiveCount >= 3) {
+                        return true; // Found 3 consecutive
                     }
+                } else {
+                    consecutiveCount = 1;
+                    lastValue = currentValue;
                 }
-                return count >= 2; // Would make 3 consecutive
             }
         }
-
+        
         return false;
     }
 
@@ -2750,11 +2757,10 @@ class QuarterlyRuleCalendar {
                             <li>Only allowed in quarters with existing quarterly selections</li>
                             <li>Once per month maximum (quarterly selection counts as monthly)</li>
                             <li>Quarterly selections are automatically treated as monthly selections</li>
-                            <li>No more than 2 consecutive monthly selections for (within current + previous 2 quarters):
+                            <li>No more than 2 consecutive monthly selections for (validated in 3-month windows: N-2,N-1,N and N-1,N,N+1 and N,N+1,N+2):
                                 <ul>
                                     <li>Day period (1st 10 days, 2nd 10 days, or 3rd 10 days)</li>
                                     <li>Day of week (Monday through Friday)</li>
-                                    <li>Month of quarter (1st, 2nd, or 3rd month)</li>
                                 </ul>
                             </li>
                         </ul>
@@ -2763,9 +2769,8 @@ class QuarterlyRuleCalendar {
                         <ul>
                             <li>Only weekdays (Monday-Friday)</li>
                             <li>Avoid holidays (if enabled)</li>
-                            <li>No more than 2 consecutive selections for (within current + previous 2 quarters):
+                            <li>No more than 2 consecutive selections for (validated in 3-month windows: N-2,N-1,N and N-1,N,N+1 and N,N+1,N+2):
                                 <ul>
-                                    <li>Month of quarter (1st, 2nd, or 3rd month)</li>
                                     <li>Day period (1st 10 days, 2nd 10 days, or 3rd 10 days)</li>
                                     <li>Day of week</li>
                                 </ul>
