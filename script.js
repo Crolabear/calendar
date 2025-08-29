@@ -1170,41 +1170,39 @@ class QuarterlyRuleCalendar {
         const manuallyBlocked = Array.from(this.blockedDates);
         const holidayBlocked = [];
 
-        // Collect US Federal holidays if holiday avoidance is enabled
-        if (this.avoidHolidays) {
-            const startYear = this.currentDate.getFullYear();
-            const startMonth = this.currentDate.getMonth();
+        // Always collect US Federal holidays for display (regardless of avoidHolidays setting)
+        const startYear = this.currentDate.getFullYear();
+        const startMonth = this.currentDate.getMonth();
 
-            // Check holidays for the displayed months
-            for (let monthOffset = 0; monthOffset < this.monthDisplayCount; monthOffset++) {
-                const date = new Date(startYear, startMonth + monthOffset, 1);
-                const year = date.getFullYear();
-                const month = date.getMonth();
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
+        // Check holidays for the displayed months
+        for (let monthOffset = 0; monthOffset < this.monthDisplayCount; monthOffset++) {
+            const date = new Date(startYear, startMonth + monthOffset, 1);
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const currentDate = new Date(year, month, day);
-                    if (this.isUSHoliday(currentDate)) {
-                        const dateString = currentDate.toDateString();
-                        const holidayName = this.getUSHolidayName(currentDate);
-                        holidayBlocked.push({ dateString, holidayName, date: currentDate });
-                    }
+            for (let day = 1; day <= daysInMonth; day++) {
+                const currentDate = new Date(year, month, day);
+                if (this.isUSHoliday(currentDate)) {
+                    const dateString = currentDate.toDateString();
+                    const holidayName = this.getUSHolidayName(currentDate);
+                    holidayBlocked.push({ dateString, holidayName, date: currentDate });
                 }
             }
         }
 
         // Update the title based on what's being displayed
-        let title = "Blocked Dates:";
+        let title = "US Federal Holidays:";
         if (manuallyBlocked.length > 0 && holidayBlocked.length > 0) {
             title = "Blocked Dates & US Federal Holidays:";
-        } else if (holidayBlocked.length > 0) {
-            title = "US Federal Holidays:";
+        } else if (manuallyBlocked.length > 0 && holidayBlocked.length === 0) {
+            title = "Blocked Dates:";
         }
         this.blockedDatesTitleEl.textContent = title;
 
-        // If no blocked dates at all
+        // If no blocked dates or holidays at all
         if (manuallyBlocked.length === 0 && holidayBlocked.length === 0) {
-            this.blockedDatesListEl.innerHTML = '<em>No dates blocked</em>';
+            this.blockedDatesListEl.innerHTML = '<em>No blocked dates or holidays in displayed months</em>';
             return;
         }
 
@@ -1226,8 +1224,10 @@ class QuarterlyRuleCalendar {
         if (holidayBlocked.length > 0) {
             const sortedHolidayBlocked = holidayBlocked.sort((a, b) => a.date - b.date);
             sortedHolidayBlocked.forEach(holiday => {
-                html += `<div class="blocked-item holiday-blocked">
-                    <span>${holiday.date.toLocaleDateString()} - <strong>${holiday.holidayName}</strong></span>
+                const blockingStatus = this.avoidHolidays ? 'Blocked' : 'Available';
+                const statusClass = this.avoidHolidays ? 'holiday-blocked' : 'holiday-available';
+                html += `<div class="blocked-item ${statusClass}">
+                    <span>${holiday.date.toLocaleDateString()} - <strong>${holiday.holidayName}</strong> <em>(${blockingStatus})</em></span>
                     <span class="holiday-indicator">🇺🇸</span>
                 </div>`;
             });

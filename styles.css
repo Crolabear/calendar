@@ -504,6 +504,11 @@ h1 {
     background-color: #fff5f5;
 }
 
+.blocked-item.holiday-available {
+    border-left-color: #28a745;
+    background-color: #f8fff9;
+}
+
 .holiday-indicator {
     font-size: 16px;
     margin-left: 8px;
