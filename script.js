@@ -38,6 +38,7 @@ class QuarterlyRuleCalendar {
         this.blockDateInput = document.getElementById('blockDate');
         this.addBlockedDateBtn = document.getElementById('addBlockedDate');
         this.blockedDatesListEl = document.getElementById('blockedDatesList');
+        this.blockedDatesTitleEl = document.getElementById('blockedDatesTitle');
         this.selectionHistoryEl = document.getElementById('selectionHistory');
         this.prevPeriodBtn = document.getElementById('prevPeriod');
         this.nextPeriodBtn = document.getElementById('nextPeriod');
@@ -310,6 +311,51 @@ class QuarterlyRuleCalendar {
         return false;
     }
 
+    getUSHolidayName(date) {
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+
+        // Fixed date holidays
+        if (month === 1 && day === 1) return "New Year's Day";
+        if (month === 7 && day === 4) return "Independence Day";
+        if (month === 11 && day === 11) return "Veterans Day";
+        if (month === 12 && day === 25) return "Christmas Day";
+
+        // Variable holidays
+        // Martin Luther King Jr. Day - 3rd Monday in January
+        if (month === 1 && this.isNthWeekdayOfMonth(date, 1, 3)) {
+            return "Martin Luther King Jr. Day";
+        }
+
+        // Presidents' Day - 3rd Monday in February
+        if (month === 2 && this.isNthWeekdayOfMonth(date, 1, 3)) {
+            return "Presidents' Day";
+        }
+
+        // Memorial Day - Last Monday in May
+        if (month === 5 && this.isLastWeekdayOfMonth(date, 1)) {
+            return "Memorial Day";
+        }
+
+        // Labor Day - 1st Monday in September
+        if (month === 9 && this.isNthWeekdayOfMonth(date, 1, 1)) {
+            return "Labor Day";
+        }
+
+        // Columbus Day - 2nd Monday in October
+        if (month === 10 && this.isNthWeekdayOfMonth(date, 1, 2)) {
+            return "Columbus Day";
+        }
+
+        // Thanksgiving - 4th Thursday in November
+        if (month === 11 && this.isNthWeekdayOfMonth(date, 4, 4)) {
+            return "Thanksgiving Day";
+        }
+
+        return null;
+    }
+
     isNthWeekdayOfMonth(date, weekday, n) {
         if (date.getDay() !== weekday) return false;
 
@@ -392,7 +438,7 @@ class QuarterlyRuleCalendar {
         const selectionMonth = selectionDate.getFullYear() * 12 + selectionDate.getMonth();
         const currentMonth = currentDate.getFullYear() * 12 + currentDate.getMonth();
         const monthDiff = Math.abs(currentMonth - selectionMonth);
-        
+
         // Check if within any of the 3-month windows:
         // N-2,N-1,N or N-1,N,N+1 or N,N+1,N+2
         return monthDiff <= 2;
@@ -613,7 +659,7 @@ class QuarterlyRuleCalendar {
 
         // Add the new selection to check
         const allSelectionsWithNew = [...allSelectionMetadata, newSelection];
-        
+
         // Sort by date
         const sortedSelections = allSelectionsWithNew.sort((a, b) => a.date - b.date);
 
@@ -625,33 +671,33 @@ class QuarterlyRuleCalendar {
     hasConsecutiveViolationInSlidingWindows(sortedSelections, newSelection, attribute) {
         // For each selection, check if it creates 3 consecutive with the same attribute value
         // within any 3-month window
-        
+
         for (let i = 0; i < sortedSelections.length; i++) {
             const currentSelection = sortedSelections[i];
-            
+
             // Skip if this isn't the new selection we're validating
             if (currentSelection !== newSelection) continue;
-            
+
             // Check 3-month windows: look back 2 months and forward 2 months
             const currentMonth = currentSelection.year * 12 + currentSelection.month;
-            
+
             // Collect all selections within 2 months before and after current selection
             const windowSelections = sortedSelections.filter(selection => {
                 const selectionMonth = selection.year * 12 + selection.month;
                 const monthDiff = Math.abs(selectionMonth - currentMonth);
                 return monthDiff <= 2;
             });
-            
+
             // Sort by date within the window
             windowSelections.sort((a, b) => a.date - b.date);
-            
+
             // Check for 3 consecutive same attribute values
             let consecutiveCount = 1;
             let lastValue = null;
-            
+
             for (const selection of windowSelections) {
                 const currentValue = selection[attribute];
-                
+
                 if (currentValue === lastValue) {
                     consecutiveCount++;
                     if (consecutiveCount >= 3) {
@@ -663,7 +709,7 @@ class QuarterlyRuleCalendar {
                 }
             }
         }
-        
+
         return false;
     }
 
@@ -1121,23 +1167,73 @@ class QuarterlyRuleCalendar {
     }
 
     updateBlockedDatesDisplay() {
-        if (this.blockedDates.size === 0) {
+        const manuallyBlocked = Array.from(this.blockedDates);
+        const holidayBlocked = [];
+
+        // Collect US Federal holidays if holiday avoidance is enabled
+        if (this.avoidHolidays) {
+            const startYear = this.currentDate.getFullYear();
+            const startMonth = this.currentDate.getMonth();
+
+            // Check holidays for the displayed months
+            for (let monthOffset = 0; monthOffset < this.monthDisplayCount; monthOffset++) {
+                const date = new Date(startYear, startMonth + monthOffset, 1);
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const currentDate = new Date(year, month, day);
+                    if (this.isUSHoliday(currentDate)) {
+                        const dateString = currentDate.toDateString();
+                        const holidayName = this.getUSHolidayName(currentDate);
+                        holidayBlocked.push({ dateString, holidayName, date: currentDate });
+                    }
+                }
+            }
+        }
+
+        // Update the title based on what's being displayed
+        let title = "Blocked Dates:";
+        if (manuallyBlocked.length > 0 && holidayBlocked.length > 0) {
+            title = "Blocked Dates & US Federal Holidays:";
+        } else if (holidayBlocked.length > 0) {
+            title = "US Federal Holidays:";
+        }
+        this.blockedDatesTitleEl.textContent = title;
+
+        // If no blocked dates at all
+        if (manuallyBlocked.length === 0 && holidayBlocked.length === 0) {
             this.blockedDatesListEl.innerHTML = '<em>No dates blocked</em>';
             return;
         }
 
-        const sortedBlocked = Array.from(this.blockedDates).sort((a, b) => new Date(a) - new Date(b));
-
         let html = '<div class="blocked-list">';
-        sortedBlocked.forEach(dateString => {
-            const date = new Date(dateString);
-            html += `<div class="blocked-item">
-                <span>${date.toLocaleDateString()}</span>
-                <button class="remove-blocked" onclick="calendar.removeBlockedDate('${dateString}')">×</button>
-            </div>`;
-        });
-        html += '</div>';
 
+        // Add manually blocked dates
+        if (manuallyBlocked.length > 0) {
+            const sortedManualBlocked = manuallyBlocked.sort((a, b) => new Date(a) - new Date(b));
+            sortedManualBlocked.forEach(dateString => {
+                const date = new Date(dateString);
+                html += `<div class="blocked-item">
+                    <span>${date.toLocaleDateString()} - <em>Manually blocked</em></span>
+                    <button class="remove-blocked" onclick="calendar.removeBlockedDate('${dateString}')">×</button>
+                </div>`;
+            });
+        }
+
+        // Add US Federal holidays
+        if (holidayBlocked.length > 0) {
+            const sortedHolidayBlocked = holidayBlocked.sort((a, b) => a.date - b.date);
+            sortedHolidayBlocked.forEach(holiday => {
+                html += `<div class="blocked-item holiday-blocked">
+                    <span>${holiday.date.toLocaleDateString()} - <strong>${holiday.holidayName}</strong></span>
+                    <span class="holiday-indicator">🇺🇸</span>
+                </div>`;
+            });
+        }
+
+        html += '</div>';
         this.blockedDatesListEl.innerHTML = html;
     }
 
