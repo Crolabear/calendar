@@ -50,8 +50,6 @@ class QuarterlyRuleCalendar {
         // Profile elements
         this.profileSelect = document.getElementById('profileSelect');
         this.newProfileNameInput = document.getElementById('newProfileName');
-        this.createProfileBtn = document.getElementById('createProfile');
-        this.deleteProfileBtn = document.getElementById('deleteProfile');
         this.exportProfileBtn = document.getElementById('exportProfile');
         this.importProfileInput = document.getElementById('importProfile');
         this.importProfileBtn = document.getElementById('importProfileBtn');
@@ -120,8 +118,6 @@ class QuarterlyRuleCalendar {
 
         // Profile event listeners
         this.profileSelect.addEventListener('change', (e) => this.switchProfile(e.target.value));
-        this.createProfileBtn.addEventListener('click', () => this.createProfile());
-        this.deleteProfileBtn.addEventListener('click', () => this.deleteProfile());
         this.exportProfileBtn.addEventListener('click', () => this.exportProfile());
         this.importProfileBtn.addEventListener('click', () => this.importProfileInput.click());
         this.importProfileInput.addEventListener('change', (e) => this.importProfile(e));
@@ -131,9 +127,6 @@ class QuarterlyRuleCalendar {
         this.importAllDataBtn.addEventListener('click', () => this.importAllDataInput.click());
         this.importAllDataInput.addEventListener('change', (e) => this.importAllData(e));
         this.clearAllDataBtn.addEventListener('click', () => this.clearAllDataConfirm());
-        this.newProfileNameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.createProfile();
-        });
     }
 
     clearSelectionHistory() {
@@ -1896,86 +1889,18 @@ class QuarterlyRuleCalendar {
         this.showMessage(`Switched to profile: ${this.profiles[profileId].name}`, 'success');
     }
 
-    createProfile() {
-        const name = this.newProfileNameInput.value.trim();
-        if (!name) {
-            this.showMessage('Please enter a profile name', 'error');
-            return;
-        }
 
-        const profileId = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
 
-        if (this.profiles[profileId]) {
-            this.showMessage('Profile with this name already exists', 'error');
-            return;
-        }
 
-        // Save current profile first
-        this.saveCurrentProfile();
-
-        // Get selected profile type
-        const profileType = this.profileTypeSelect.value;
-
-        // Create new profile
-        this.profiles[profileId] = {
-            name: name,
-            profileType: profileType,
-            selectedDays: [],
-            selectionHistory: [],
-            blockedDates: [],
-            avoidHolidays: true,
-            monthDisplayCount: 9,
-            monthlySelectedDays: [],
-            monthlySelectionEnabled: false,
-            quarterlyToMonthlyMapping: [],
-            created: new Date().toISOString()
-        };
-
-        this.saveProfiles();
-        this.updateProfileSelector();
-
-        // Switch to new profile
-        this.profileSelect.value = profileId;
-        this.switchProfile(profileId);
-
-        this.newProfileNameInput.value = '';
-        this.showMessage(`Created profile: ${name}`, 'success');
-    }
-
-    deleteProfile() {
-        if (this.currentProfile === 'default') {
-            this.showMessage('Cannot delete the default profile', 'error');
-            return;
-        }
-
-        const profileName = this.profiles[this.currentProfile].name;
-
-        if (!confirm(`Are you sure you want to delete profile "${profileName}"? This action cannot be undone.`)) {
-            return;
-        }
-
-        delete this.profiles[this.currentProfile];
-        this.saveProfiles();
-
-        // Switch to default profile
-        this.currentProfile = 'default';
-        this.profileSelect.value = 'default';
-        this.loadProfile('default');
-        this.updateProfileSelector();
-
-        // Update UI
-        this.calculateValidDays();
-        this.renderCalendar();
-        this.updateBlockedDatesDisplay();
-        this.updateSelectionHistoryDisplay();
-        this.updateSelectedDaysDisplay();
-
-        this.showMessage(`Deleted profile: ${profileName}`, 'success');
-    }
 
     exportProfile() {
+        // Get the new name from the input field, or use current profile name as fallback
+        const newName = this.newProfileNameInput.value.trim();
+        const profileName = newName || this.profiles[this.currentProfile].name;
+
         const profile = {
             ...this.profiles[this.currentProfile],
+            name: profileName, // Use the new name from input or current name
             exportedAt: new Date().toISOString(),
             version: '1.0'
         };
@@ -1985,10 +1910,13 @@ class QuarterlyRuleCalendar {
 
         const link = document.createElement('a');
         link.href = URL.createObjectURL(dataBlob);
-        link.download = `calendar-profile-${profile.name.replace(/[^a-z0-9]/gi, '_')}.json`;
+        link.download = `calendar-profile-${profileName.replace(/[^a-z0-9]/gi, '_')}.json`;
         link.click();
 
-        this.showMessage(`Exported profile: ${profile.name}`, 'success');
+        // Clear the input field after export
+        this.newProfileNameInput.value = '';
+
+        this.showMessage(`Exported profile: ${profileName}`, 'success');
     }
 
     importProfile(event) {
@@ -2244,9 +2172,6 @@ class QuarterlyRuleCalendar {
 
         // Restore selection or default to current profile
         this.profileSelect.value = this.profiles[currentValue] ? currentValue : this.currentProfile;
-
-        // Update delete button state
-        this.deleteProfileBtn.disabled = this.currentProfile === 'default';
     }
 
     showMessage(message, type) {

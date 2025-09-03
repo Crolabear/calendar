@@ -66,13 +66,6 @@ h1 {
     gap: 15px;
 }
 
-.profile-creation {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-}
-
 .profile-management {
     display: flex;
     flex-wrap: wrap;
@@ -80,7 +73,7 @@ h1 {
     align-items: center;
 }
 
-#newProfileName, #profileType {
+#newProfileName {
     padding: 8px 12px;
     border: 2px solid #ddd;
     border-radius: 4px;
@@ -98,28 +91,9 @@ h1 {
     transition: background-color 0.2s;
 }
 
-#createProfile {
-    background-color: #28a745;
-    color: white;
-}
 
-#createProfile:hover {
-    background-color: #218838;
-}
 
-#deleteProfile {
-    background-color: #dc3545;
-    color: white;
-}
 
-#deleteProfile:hover:not(:disabled) {
-    background-color: #c82333;
-}
-
-#deleteProfile:disabled {
-    background-color: #6c757d;
-    cursor: not-allowed;
-}
 
 #exportProfile, #importProfileBtn {
     background-color: #17a2b8;

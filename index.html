@@ -22,15 +22,12 @@
                     </select>
                 </div>
                 <div class="profile-actions">
-                    <div class="profile-creation">
-                        <input type="text" id="newProfileName" placeholder="New profile name" maxlength="30">
-                        <button id="createProfile">Create Profile</button>
-                    </div>
                     <div class="profile-management">
-                        <button id="deleteProfile">Delete Profile</button>
+                        <input type="text" id="newProfileName" placeholder="New profile name for export" maxlength="30">
                         <button id="exportProfile">Export Profile</button>
                         <input type="file" id="importProfile" accept=".json" style="display: none;">
                         <button id="importProfileBtn">Import Profile</button>
+                        <button id="clearAllData">Clear All Data</button>
                     </div>
                 </div>
             </div>
@@ -43,7 +40,6 @@
                     <button id="exportAllData">Export All Dates</button>
                     <input type="file" id="importAllData" accept=".json" style="display: none;">
                     <button id="importAllDataBtn">Import All Dates</button>
-                    <button id="clearAllData">Clear All Data</button>
                 </div>
                 <p class="data-info">Export/import all your selected dates and settings as a backup file.</p>
             </div>
